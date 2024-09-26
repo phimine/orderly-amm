@@ -1,15 +1,68 @@
-# Sample Hardhat Project
+### 系统概述
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
+一个可升级的AMM Defi协议，允许用户使用自动做市商(AMM)模型在ETH和多个ERC20代币之间进行交换。
 
-Try running some of the following tasks:
+### 功能拆解
+
+#### 流动性池-交易对（支持以ETH与其他ERC20代币之间的交易对）
+
+1. 提供流动性时获得LP token
+2. 移除流动性时销毁LP token
+3. 使用代币兑换其他代币（ERC20->ETH、 ETH->ERC20）
+
+#### 交易对工厂
+
+1. 创建交易对合约
+
+#### 主路由合约
+
+1. 用户质押ETH和ERC20提供流动性
+2. 用户以LP Token为凭证移除流动性
+3. 用户使用ETH兑换ERC20代币
+4. 用户使用ERC20代币兑换ETH
+
+### 状态变量
+
+```
+交易对合约 {
+   // 交易对基础
+   tokenA
+   tokenB
+   // 代币存量
+   tokenA reserve
+   tokenB reserve
+   // 价格*时间
+   tokenA priceCumulativeLast
+   tokenB priceCumulativeLast
+   // 工厂：只允许通过工厂创建和初始化
+   factory
+}
+```
+
+```
+交易对工厂合约 {
+    // 现存的交易对: tokenA => tokenB => pair
+    getPair
+}
+```
+
+```
+主路由合约 {
+    // 工厂：用于创建交易对
+    factory
+    // WETH：自动兑换ETH和WETH
+    WETH
+}
+```
+
+### 权限控制
+
+### 可升级设计
+
+### 单元测试
 
 ```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.js
+
 ```
 
 # Technical Requirement:
