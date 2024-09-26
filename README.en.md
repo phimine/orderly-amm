@@ -2,6 +2,11 @@
 
 An upgradeable AMM Defi contract, allows users to swap between ETH and multiple ERC20 tokens using an Automated Market Maker (AMM) model.
 
+### Architectural Overview
+
+See below graph
+![architectural graph](/static/img/arch.png "architectural graph")
+
 ### Functions Split
 
 #### TokenPair.sol (only support swaping between ETH and ERC20)
@@ -20,6 +25,49 @@ An upgradeable AMM Defi contract, allows users to swap between ETH and multiple 
 2. allow user to withdraw ETH and ERC20 using LP tokens - remove liquidity
 3. allow user to swap ETH using ERC20
 4. allow user to swap ERC20 using ETH
+
+### Calculation Formula
+
+#### Liquidity Calculation
+
+-   **Initial Liquidity** `liquidity = (x * y) - min_liquidity`<br>
+    _--min_liquidity: locked minimum liquidity;_
+-   **Delta Liquidity** `liquidity = min(dx * ts / tx, dy * ts / ty)`<br>
+    _--dx/dy: delta amount of token0 and token1;<br>_
+    _--tx/ty: reserve of token0 and token1;<br>_
+    _--ts: total liquidity;<br>_
+
+#### Swaping Calculation
+
+-   **How many tokenY swap out if pay exact tokenX**
+
+```
+(x + dx * 0.997) * (y - dy) = k = x * y
+dy = y - ((x * y) / (x + dx * 0.997))
+   = (y * (x + dx * 0.997) - x * y) / (x + dx * 0.997)
+   = (y * x + y * dx * 0.997 - x * y) / (x + dx * 0.997)
+   = (y * dx * 0.997) / (x + dx * 0.997)
+   = (y * dx * 997) / (x * 1000 + dx * 997)
+```
+
+_--dx: amount of pay tokenX<br>_
+_--dy: how many tokenY be output<br>_
+_--0.997: 0.3% swap fee<br>_
+
+-   **How many tokenY swap in if intent to receive exact tokenX**
+
+```
+(x - dx) * (y + dy * 0.997) = k = x * y
+dy = (x * y / (x - dx) - y) / 0.997
+   = (x * y - (x - dx) * y) / (x - dx) / 0.997
+   = (dx * y) / (x - dx) / 0.997
+   = (dx * y) / ((x - dx) * 0.997)
+   = (dx * y * 1000) / ((x - dx) * 997)
+```
+
+_--dx: expected amount of tokenX<br>_
+_--dy: how many tokenY be input<br>_
+_--0.997: 0.3% swap fee<br>_
 
 ### State Variables
 
