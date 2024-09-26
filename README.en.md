@@ -1,10 +1,10 @@
-### Project Overview
+### Project Overview (refer to [ending](https://github.com/phimine/orderly-amm/blob/main/README.en.md#requirement-points) for original requirements list)
 
 An upgradeable AMM Defi contract, allows users to swap between ETH and multiple ERC20 tokens using an Automated Market Maker (AMM) model.
 
 ### Functions Split
 
-#### TokenPair.sol（only support swaping between ETH and ERC20）
+#### TokenPair.sol (only support swaping between ETH and ERC20)
 
 1. mint LP token when provide liquidity
 2. burn LP token when remove liquidity
