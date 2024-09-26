@@ -1,4 +1,4 @@
-### 系统概述
+### 合约概述
 
 一个可升级的AMM Defi协议，允许用户使用自动做市商(AMM)模型在ETH和多个ERC20代币之间进行交换。
 
@@ -55,54 +55,85 @@
 }
 ```
 
+### 可升级设计
+
+交易对合约和工厂合约作为存储合约，独立部署。
+主路由合约作为与用户直接交互的业务逻辑合约，基于UUPS模式设计为可升级合约。
+
 ### 权限控制
 
-### 可升级设计
+交易对合约只允许由工厂统一创建管理
+主路由合约分配两个管理角色（ADMIN_ROLE, UPGRADE_ROLE），只有角色的管理者可以指定其他管理者。
+
+-   UPGRADE_ROLE: 合约升级角色，只有该角色可以执行升级操作
+-   ADMIN_ROLE: 管理员角色，目前没有配置需要管理员操作
+
+### 部署合约
+
+#### 本地网络
+
+```shell
+yarn hardhat deploy --tags all --network hardhat
+```
+
+#### 测试网
+
+```shell
+yarn hardhat deploy --tags all --network sepolia
+```
+
+#### 主网
+
+```shell
+yarn hardhat deploy --tags all --network mainnet
+```
 
 ### 单元测试
 
 ```shell
-
+yarn hardhat test --network hardhat [--grep]
 ```
 
-# Technical Requirement:
+### 要求清单
 
-Title: Development of an Advanced, Secure, and Gas-Optimized AMM Platform
-Objective:
-Create a robust, upgradeable smart contract platform that allows users to swap between ETH and multiple ERC20 tokens using an Automated Market Maker (AMM) model. Implement advanced security features, optimize for gas efficiency, and ensure seamless upgradeability. Provide comprehensive testing, deployment strategies, and documentation.
-Technical Requirements:
+##### 自动做市商
 
-1. Smart Contract Development:
-   o AMM Implementation:
-    Develop an AMM that supports swapping between ETH and at least two ERC20 tokens.
-    Implement liquidity pools, allowing users to add/remove liquidity and earn fees.
-    [Optional] Include slippage control mechanisms and dynamic pricing based on pool reserves.
-   o Advanced Access Control:
-    Use role-based access control to manage different permissions within the contract.
-    [Optional] Implement multi-signature requirements for critical functions.
-2. Security Features:
-   o Vulnerability Mitigation:
-    Identify and protect against common vulnerabilities such as re-entrancy, overflow/underflow, denial of service, and access control issues.
-   o Emergency Measures:
-    Implement a circuit breaker or emergency stop function that can halt operations in case of detected anomalies.
-   o Audit-Ready Code:
-    [Optional] Write code that is structured and commented to facilitate third-party audits.
-3. Upgradeability and Data Migration:
-   o Complex Upgrades:
-    Demonstrate upgrading the contract with changes in the storage structure, ensuring data integrity.
-    Provide migration scripts and procedures.
-   o Eternal Storage Pattern:
-    [Optional] Utilize the Eternal Storage pattern to manage state separately from logic.
-4. Gas Optimization:
-   o Efficient Coding Practices:
-    Optimize functions for minimal gas consumption, explaining the techniques used.
-    Use events judiciously to balance between necessary logging and gas costs.
-5. Testing and Quality Assurance:
-   o Comprehensive Test Suite:
-    Write extensive tests covering all functionalities, including unit tests, integration tests, and property-based tests.
-   o Security Analysis:
-    [Optional] Use static analysis tools to detect potential vulnerabilities.
-6. Multi-Environment Deployment:
-   o Provide scripts and instructions for deploying to different environments.
-7. Documentation:
-   o Include an architectural overview, detailed design rationale, and comprehensive user and developer guides.
+-   [x] 支持ETH与多个ETC20代币的兑换
+-   [x] 支持用户提供流动性赚取奖励
+-   [ ] 基于流动性池储量动态定价
+-   [ ] 滑点控制机制
+
+##### 权限控制
+
+-   [x] 角色权限管理合约
+-   [ ] 多签管理
+
+##### 安全性
+
+-   [x] 防范常见漏洞，如重入攻击、溢出/下溢、Dos攻击、访问控制等
+-   [x] 紧急停止功能
+-   [x] 结构化规范代码
+
+##### 可升级性
+
+-   [x] 合约可升级设计
+-   [x] 提供升级脚本
+-   [x] 永久存储模式将状态存储与业务逻辑隔离
+
+##### Gas优化
+
+-   [x] 优化代码，减少gas消耗
+-   [x] 合理的使用事件
+
+##### 测试
+
+-   [x] 编写测试脚本全面覆盖所有功能
+-   [ ] 静态分析工具扫描代码漏洞
+
+##### 多环境部署
+
+-   [x] 提供多环境部署脚本
+
+##### 文档
+
+-   [x] 必要的文档，包含架构概述及设计原理
