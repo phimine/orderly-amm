@@ -31,16 +31,15 @@ See below graph
 #### Liquidity Calculation
 
 -   **Initial Liquidity** `liquidity = (x * y) - min_liquidity`<br>
-    *--min_liquidity: locked minimum liquidity;*
+    > *--min_liquidity: locked minimum liquidity;*
 -   **Delta Liquidity** `liquidity = min(dx * ts / tx, dy * ts / ty)`<br>
-    *--dx/dy: delta amount of token0 and token1;<br>*
-    *--tx/ty: reserve of token0 and token1;<br>*
-    *--ts: total liquidity;<br>*
+    > *--dx/dy: delta amount of token0 and token1;<br>*
+    > *--tx/ty: reserve of token0 and token1;<br>*
+    > *--ts: total liquidity;<br>*
 
 #### Swaping Calculation
 
 -   **How many tokenY swap out if pay exact tokenX**
-
 ```
 (x + dx * 0.997) * (y - dy) = k = x * y
 dy = y - ((x * y) / (x + dx * 0.997))
@@ -49,13 +48,11 @@ dy = y - ((x * y) / (x + dx * 0.997))
    = (y * dx * 0.997) / (x + dx * 0.997)
    = (y * dx * 997) / (x * 1000 + dx * 997)
 ```
-
-*--dx: amount of pay tokenX<br>*
-*--dy: how many tokenY be output<br>*
-*--0.997: 0.3% swap fee<br>*
+> *--dx: amount of pay tokenX<br>*
+> *--dy: how many tokenY be output<br>*
+> *--0.997: 0.3% swap fee<br>*
 
 -   **How many tokenY swap in if intent to receive exact tokenX**
-
 ```
 (x - dx) * (y + dy * 0.997) = k = x * y
 dy = (x * y / (x - dx) - y) / 0.997
@@ -64,10 +61,9 @@ dy = (x * y / (x - dx) - y) / 0.997
    = (dx * y) / ((x - dx) * 0.997)
    = (dx * y * 1000) / ((x - dx) * 997)
 ```
-
-*--dx: expected amount of tokenX<br>*
-*--dy: how many tokenY be input<br>*
-*--0.997: 0.3% swap fee<br>*
+> *--dx: expected amount of tokenX<br>*
+> *--dy: how many tokenY be input<br>*
+> *--0.997: 0.3% swap fee<br>*
 
 ### State Variables
 
