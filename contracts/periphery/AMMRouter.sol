@@ -14,6 +14,12 @@ import "../interface/ITokenPairFactory.sol";
 import "../library/PairLibrary.sol";
 import "../library/TransferHelper.sol";
 
+/**
+ * @title AMMRouter
+ * @notice Router contract to act with LPs and swap users
+ * @dev upgradeable contract based on UUPS parttern, role-based access control and pausable
+ * @author Carl Fu
+ */
 contract AMMRouter is
     IAMMRouter,
     Initializable,
@@ -31,8 +37,8 @@ contract AMMRouter is
     address public factory;
     address public WETH;
 
-    bytes32 public constant ADMIN_ROLE = keccak256("admin_role");
-    bytes32 public constant UPGRADE_ROLE = keccak256("upgrade_role");
+    bytes32 private constant ADMIN_ROLE = keccak256("admin_role");
+    bytes32 private constant UPGRADE_ROLE = keccak256("upgrade_role");
 
     /////////////////////////
     /*       Events        */
@@ -45,6 +51,11 @@ contract AMMRouter is
     /////////////////////////
     /*     Constructor     */
     /////////////////////////
+    /**
+     * initialize router contract and grant msg.sender role permission
+     * @param _factory factory to create pair
+     * @param _WETH weth to swap using eth
+     */
     function initialize(address _factory, address _WETH) external initializer {
         __AccessControl_init();
         __Pausable_init();
@@ -66,6 +77,18 @@ contract AMMRouter is
     }
 
     /////////////// external ////////////////
+    /**
+     * add liquidity using ETH and ERC20
+     * @dev Calls pair contract to mint LP token, refund extra eth if any dust
+     * @param token ERC20 token
+     * @param amountTokenDesired desired amount of ERC20 to provide
+     * @param amountTokenMin min amount of ERC20 to provide
+     * @param amountETHMin min ETH amount to provide
+     * @param to LP token receiver
+     * @return amountToken actual amount of ERC20 to provide
+     * @return amountETH actual amount of ETH to provide
+     * @return liquidity liquidity amount
+     */
     function addLiquidityETH(
         address token,
         uint amountTokenDesired,
@@ -75,7 +98,6 @@ contract AMMRouter is
     )
         external
         payable
-        virtual
         override
         returns (uint amountToken, uint amountETH, uint liquidity)
     {
@@ -99,6 +121,18 @@ contract AMMRouter is
         }
     }
 
+    /**
+     * remove liquidity of ETH/ERC20 using LP token
+     * @dev Calls pair contract to burn LP token and withdraw tokens,
+     * error with INSUFFICIENT_AMOUNT if actual received amount is less than min desired amount
+     * @param token ERC20 token
+     * @param liquidity liquidity amount to be removed
+     * @param amountTokenMin min desired amount of ERC20 to receive
+     * @param amountETHMin min desired amount of ETH to receive
+     * @param to token receiver
+     * @return amountToken actual amount of ERC20 to receive
+     * @return amountETH actual amount of ETH to receive
+     */
     function removeLiquidityETH(
         address token,
         uint256 liquidity,
@@ -119,6 +153,17 @@ contract AMMRouter is
         TransferHelper.safeTransferETH(to, amountETH);
     }
 
+    /**
+     * remove liquidity of ERC20 token pair using LP token
+     * @param tokenA token0
+     * @param tokenB token1
+     * @param liquidity liquidity amount to be removed
+     * @param amountAMin desired min amount of token0 to receive
+     * @param amountBMin desired min amount of token1 to receive
+     * @param to token receiver
+     * @return amountA actual amount of token0 to receive
+     * @return amountB actual amount of token1 to receive
+     */
     function removeLiquidity(
         address tokenA,
         address tokenB,
@@ -128,7 +173,9 @@ contract AMMRouter is
         address to
     ) public returns (uint256 amountA, uint256 amountB) {
         address pair = PairLibrary.pairFor(factory, tokenA, tokenB);
-        TransferHelper.safeTransfer(pair, pair, liquidity); // send liquidity to pair
+        console.log("=======================removeLiquidity");
+        console.log("pair is", pair);
+        TransferHelper.safeTransferFrom(pair, msg.sender, pair, liquidity); // send liquidity to pair
         (uint256 amount0, uint256 amount1) = ITokenPair(pair).burn(to);
         (address token0, ) = PairLibrary.sortTokens(tokenA, tokenB);
         (amountA, amountB) = tokenA == token0
@@ -173,6 +220,7 @@ contract AMMRouter is
         );
         _swap(amountOut, WETH, token, to);
 
+        amounts = new uint[](2);
         amounts[0] = msg.value;
         amounts[1] = amountOut;
     }
@@ -213,6 +261,7 @@ contract AMMRouter is
             TransferHelper.safeTransferETH(msg.sender, msg.value - amounts[0]);
         }
 
+        amounts = new uint[](2);
         amounts[0] = amountIn;
         amounts[1] = amountOut;
     }
@@ -254,6 +303,7 @@ contract AMMRouter is
         IWETH(WETH).withdraw(amountIn);
         TransferHelper.safeTransferETH(to, amountIn);
 
+        amounts = new uint[](2);
         amounts[0] = amountIn;
         amounts[1] = amountOut;
     }
@@ -292,15 +342,31 @@ contract AMMRouter is
         IWETH(WETH).withdraw(amounts[amounts.length - 1]);
         TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
 
+        amounts = new uint[](2);
         amounts[0] = amountIn;
         amounts[1] = amountOut;
     }
 
     //////////////// internal ////////////////
+    /**
+     * override to control permission of upgrade
+     */
     function _authorizeUpgrade(
         address newImplementation
     ) internal override onlyRole(UPGRADE_ROLE) {}
 
+    /**
+     * add liquidity using ERC20 pair
+     * @dev Calls factory contract to create pair if it doesn't exist
+     * @param tokenA token0
+     * @param tokenB token1
+     * @param amountADesired desired amount of token0
+     * @param amountBDesired desired amount of token1
+     * @param amountAMin min desired amount of token0
+     * @param amountBMin min desired amount of token1
+     * @return amountA actual amount of token0
+     * @return amountB actual amount of token1
+     */
     function _addLiquidity(
         address tokenA,
         address tokenB,
@@ -349,6 +415,14 @@ contract AMMRouter is
         }
     }
 
+    /**
+     * swap to receive the amount of output token
+     * @dev Calls pair contract to swap
+     * @param amountOut amount of output token
+     * @param tokenIn input token
+     * @param tokenOut output token
+     * @param _to receiver
+     */
     function _swap(
         uint256 amountOut,
         address tokenIn,

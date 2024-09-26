@@ -94,6 +94,38 @@ yarn hardhat deploy --tags all --network mainnet
 yarn hardhat test --network hardhat [--grep]
 ```
 
+```
+AMMRouter
+    initialize
+      ✔ should set factory and WETH address correctly
+      ✔ should initial liquidity pool correctly if pair does not exist
+      ✔ should revert with INSUFFICIENT_AMOUNT error if optimal token is less than min amount when provide for existing pair (50ms)
+      ✔ should provide correct liquidity for existing pair
+      ✔ should decrease liquidity correctly after removing
+      ✔ should revert with INSUFFICIENT_AMOUNT error if output token is less than min amount (75ms)
+    swapExactETHForTokens
+      ✔ should revert with INSUFFICIENT_OUTPUT_AMOUNT error if output token is less than amountOutMin
+      ✔ should swap to get token via exact ETH correctly
+    swapETHForExactTokens
+      ✔ should swap to get token via exact ETH correctly
+    swapExactTokensForETH
+      ✔ should swap to get ETH via exact ERC20 correctly
+    swapTokensForExactETH
+      ✔ should swap to get ETH via exact ERC20 correctly
+
+  TokenPairFactory
+    constructor
+      ✔ should has no pair in initial factory
+    createPair
+      ✔ should revert with SAME_ADDRESSES error if token pair are the same one
+      ✔ should revert with ZERO_ADDRESS error if one token of pair is zero address
+      ✔ should create pair correctly
+      ✔ should emit PairCreated
+      ✔ should revert with PAIR_EXISTS error if pair exists
+
+   17 passing (2s)
+```
+
 ### 要求清单
 
 ##### 自动做市商

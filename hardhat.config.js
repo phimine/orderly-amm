@@ -26,6 +26,12 @@ module.exports = {
             chainId: 11155111,
             blockConfirmations: 6,
         },
+        mainnet: {
+            // TODO
+            url: SEPOLIA_RPC_URL,
+            accounts: [PRIVATE_KEY],
+            chainId: 11155111,
+        },
     },
     namedAccounts: {
         deployer: {

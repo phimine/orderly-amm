@@ -21,7 +21,6 @@ contract TokenPairFactory is ITokenPairFactory {
     /////////////////////////
     /*   State Variables   */
     /////////////////////////
-    mapping(string => address) public getPairByToken;
     mapping(address => mapping(address => address)) public getPair;
     address[] public allPairs;
 
@@ -47,11 +46,22 @@ contract TokenPairFactory is ITokenPairFactory {
     /////////////////////////
     /*      Functions      */
     /////////////////////////
-
+    /**
+     * get the total length of all existing pairs
+     */
     function allPairsLength() external view override returns (uint) {
         return allPairs.length;
     }
 
+    /**
+     * create token pair
+     * @dev errors with SAME_ADDRESSES if both token are the same,
+     * error with ZERO_ADDRESS if one token is 0x00,
+     * error with PAIR_EXISTS if token pair already exists
+     * @param tokenA token0
+     * @param tokenB token1
+     * @return pair pair contract address
+     */
     function createPair(
         address tokenA,
         address tokenB

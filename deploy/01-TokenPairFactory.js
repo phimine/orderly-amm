@@ -14,7 +14,6 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     let factoryContract;
     const args = [];
     if (devChains.includes(network.name)) {
-        // 只在dev环境上部署
         factoryContract = await deploy("TokenPairFactory", {
             from: deployer,
             args: args,

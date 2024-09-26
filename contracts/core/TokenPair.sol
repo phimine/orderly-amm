@@ -7,6 +7,14 @@ import "../library/TransferHelper.sol";
 import "./AMMERC20.sol";
 import "./TokenPairFactory.sol";
 
+/**
+ * @title TokenPair
+ * @author Carl Fu
+ * @notice The token pair only support swaping between ETH and ERC20
+ * @dev 1. mint LP token when provide liquidity
+ *      2. burn LP token when remove liquidity
+ *      3. swap ETH/ERC20（ERC20->ETH、 ETH->ERC20）
+ */
 contract TokenPair is AMMERC20, ITokenPair {
     /////////////////////////
     /*  Type Declarations  */
@@ -20,7 +28,7 @@ contract TokenPair is AMMERC20, ITokenPair {
     address public token0;
     address public token1;
 
-    // use single storage
+    // use single storage slot
     uint112 private reserve0;
     uint112 private reserve1;
     uint32 private blockTimestampLast;
@@ -34,7 +42,9 @@ contract TokenPair is AMMERC20, ITokenPair {
     bytes4 private constant SELECTOR =
         bytes4(keccak256(bytes("transfer(address,uint256)")));
     uint256 internal constant BASE_DECIMAL = 10 ** 8;
+
     uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
+    // the address to lock minimum liquidity
     address public constant lockAddress =
         address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
@@ -59,6 +69,16 @@ contract TokenPair is AMMERC20, ITokenPair {
     event Sync(uint112 reserve0, uint112 reserve1);
 
     /////////////////////////
+    /*       Errors        */
+    /////////////////////////
+    error TokenPair__mint__INSUFFICIENT_LIQUIDITY();
+    error TokenPair__burn__INSUFFICIENT_LIQUIDITY();
+    error TokenPair__swap__INSUFFICIENT_OUTPUT_AMOUNT();
+    error TokenPair__swap__INSUFFICIENT_LIQUIDITY();
+    error TokenPair__swap__INVALID_TO();
+    error TokenPair__swap__INSUFFICIENT_INPUT_AMOUNT();
+
+    /////////////////////////
     /*      Modifiers      */
     /////////////////////////
     /**
@@ -69,6 +89,16 @@ contract TokenPair is AMMERC20, ITokenPair {
         locked = true;
         _;
         locked = false;
+    }
+
+    /**
+     * only allows valid swap amout
+     */
+    modifier validSwap(uint256 amount0, uint256 amount1) {
+        if (amount0 <= 0 && amount1 <= 0) {
+            revert TokenPair__swap__INSUFFICIENT_OUTPUT_AMOUNT();
+        }
+        _;
     }
 
     /////////////////////////
@@ -82,12 +112,25 @@ contract TokenPair is AMMERC20, ITokenPair {
     /*      Functions      */
     /////////////////////////
     /////// external ////////
+    /**
+     * initialize the token pair
+     * @dev only allow factory to initialize, errors with FORBIDDEN if not factory
+     * @param _token0 token0 address
+     * @param _token1 token1 address
+     */
     function initialize(address _token0, address _token1) external {
         require(msg.sender == factory, "TokenPair: FORBIDDEN");
         token0 = _token0;
         token1 = _token1;
     }
 
+    /**
+     * get the current reserve of token0/token1
+     * @dev use single storage slot to storage the group of variables
+     * @return reserve0 reserve of token0
+     * @return reserve1 reserve of token1
+     * @return blockTimestampLast timestamp of last update
+     */
     function getReserves()
         public
         view
@@ -97,6 +140,11 @@ contract TokenPair is AMMERC20, ITokenPair {
         return (reserve0, reserve1, blockTimestampLast);
     }
 
+    /**
+     * mint LP token when provide liquidity
+     * @dev errors with INSUFFICIENT_LIQUIDITY_MINTED if too low liquidity provided
+     * @param to the LP token receiver
+     */
     function mint(address to) external lock returns (uint256 liquidity) {
         (uint112 _reserve0, uint112 _reserve1, ) = getReserves();
         uint256 balance0 = IERC20(token0).balanceOf(address(this));
@@ -114,7 +162,9 @@ contract TokenPair is AMMERC20, ITokenPair {
                 (amount1 * _totalSupply) / _reserve1
             );
         }
-        require(liquidity > 0, "TokenPair: INSUFFICIENT_LIQUIDITY_MINTED");
+        if (liquidity <= 0) {
+            revert TokenPair__mint__INSUFFICIENT_LIQUIDITY();
+        }
         _mint(to, liquidity);
 
         _update(balance0, balance1, _reserve0, _reserve1);
@@ -123,6 +173,11 @@ contract TokenPair is AMMERC20, ITokenPair {
         emit Mint(msg.sender, amount0, amount1);
     }
 
+    /**
+     * burn LP token when remove liquidity
+     * @dev errors with INSUFFICIENT_LIQUIDITY_BURNED if too low liquidity
+     * @param to the pair tokens receiver
+     */
     function burn(
         address to
     ) external lock returns (uint256 amount0, uint256 amount1) {
@@ -136,10 +191,10 @@ contract TokenPair is AMMERC20, ITokenPair {
         uint256 _totalSupply = totalSupply();
         amount0 = (liquidity * balance0) / _totalSupply;
         amount1 = (liquidity * balance1) / _totalSupply;
-        require(
-            amount0 > 0 && amount1 > 0,
-            "TokenPair: INSUFFICIENT_LIQUIDITY_BURNED"
-        );
+
+        if (amount0 <= 0 || amount1 <= 0) {
+            revert TokenPair__burn__INSUFFICIENT_LIQUIDITY();
+        }
         _burn(address(this), liquidity);
         TransferHelper.safeTransfer(_token0, to, amount0);
         TransferHelper.safeTransfer(_token1, to, amount1);
@@ -152,16 +207,22 @@ contract TokenPair is AMMERC20, ITokenPair {
         emit Burn(msg.sender, amount0, amount1, to);
     }
 
-    function swap(uint amount0Out, uint amount1Out, address to) external lock {
-        require(
-            amount0Out > 0 || amount1Out > 0,
-            "TokenPair: INSUFFICIENT_OUTPUT_AMOUNT"
-        );
+    /**
+     * swap ETH/ERC20（ERC20->ETH、 ETH->ERC20）
+     * @dev errors with INSUFFICIENT_LIQUIDITY if too low liquidity
+     * @param amount0Out the output amount needed of token0
+     * @param amount1Out the output amount needed of token1
+     * @param to tokens receiver
+     */
+    function swap(
+        uint256 amount0Out,
+        uint256 amount1Out,
+        address to
+    ) external lock validSwap(amount0Out, amount1Out) {
         (uint112 _reserve0, uint112 _reserve1, ) = getReserves();
-        require(
-            amount0Out < _reserve0 && amount1Out < _reserve1,
-            "TokenPair: INSUFFICIENT_LIQUIDITY"
-        );
+        if (amount0Out > _reserve0 || amount1Out > _reserve1) {
+            revert TokenPair__swap__INSUFFICIENT_LIQUIDITY();
+        }
 
         uint256 balance0;
         uint256 balance1;
@@ -169,11 +230,13 @@ contract TokenPair is AMMERC20, ITokenPair {
             // scope for _token{0,1}, avoids stack too deep errors
             address _token0 = token0;
             address _token1 = token1;
-            require(to != _token0 && to != _token1, "TokenPair: INVALID_TO");
+            if (to == _token0 || to == _token1) {
+                revert TokenPair__swap__INVALID_TO();
+            }
             if (amount0Out > 0)
-                TransferHelper.safeTransfer(_token0, to, amount0Out); // optimistically transfer tokens
+                TransferHelper.safeTransfer(_token0, to, amount0Out);
             if (amount1Out > 0)
-                TransferHelper.safeTransfer(_token1, to, amount1Out); // optimistically transfer tokens
+                TransferHelper.safeTransfer(_token1, to, amount1Out);
             balance0 = IERC20(_token0).balanceOf(address(this));
             balance1 = IERC20(_token1).balanceOf(address(this));
         }
@@ -183,16 +246,22 @@ contract TokenPair is AMMERC20, ITokenPair {
         uint256 amount1In = balance1 > _reserve1 - amount1Out
             ? balance1 - (_reserve1 - amount1Out)
             : 0;
-        require(
-            amount0In > 0 || amount1In > 0,
-            "TokenPair: INSUFFICIENT_INPUT_AMOUNT"
-        );
+        if (amount0In == 0 && amount1In == 0) {
+            revert TokenPair__swap__INSUFFICIENT_INPUT_AMOUNT();
+        }
 
         _update(balance0, balance1, _reserve0, _reserve1);
         emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
     }
 
     /////// internal ////////
+    /**
+     * update the price cumulative for TWAP
+     * @param balance0 current reserve of token0
+     * @param balance1 current reserve of token1
+     * @param _reserve0 previous reserve of token0
+     * @param _reserve1 previous reserve of token1
+     */
     function _update(
         uint balance0,
         uint balance1,
@@ -201,7 +270,7 @@ contract TokenPair is AMMERC20, ITokenPair {
     ) internal {
         require(
             balance0 <= type(uint112).max && balance1 <= type(uint112).max,
-            "TokenPair:OF"
+            "TokenPair: OVERFLOW"
         );
         uint32 blockTimestamp = uint32(block.timestamp % 2 ** 32);
         uint32 timeElapsed = blockTimestamp - blockTimestampLast;

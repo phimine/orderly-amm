@@ -1,11 +1,17 @@
-const { getNamedAccounts, deployments, ethers, upgrades } = require("hardhat");
+const {
+    getNamedAccounts,
+    deployments,
+    ethers,
+    upgrades,
+    network,
+} = require("hardhat");
 const { routerProxyAddress } = require("../helper-hardhat-config");
 
 module.exports = async () => {
     const { log } = deployments;
     const CONTRACT_NAME = "AMMRouter";
 
-    const proxyAddress = routerProxyAddress; //(await deployments.get(CONTRACT_NAME)).address;
+    const proxyAddress = routerProxyAddress[network.name]; //(await deployments.get(CONTRACT_NAME)).address;
     log("old AMMRouter deployed to ", proxyAddress);
     const contractFactory = await ethers.getContractFactory(CONTRACT_NAME);
     const updated = await upgrades.upgradeProxy(proxyAddress, contractFactory);
@@ -16,4 +22,4 @@ module.exports = async () => {
     });
     log("new AMMRouter deployed to ", updated.target);
 };
-module.exports.tags = ["all", "routerupgrade"];
+module.exports.tags = ["routerupgrade"];

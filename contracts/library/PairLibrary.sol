@@ -114,7 +114,7 @@ library PairLibrary {
                             hex"ff",
                             factory,
                             keccak256(abi.encodePacked(token0, token1)),
-                            hex"4035d6e9a6674a11147ef787ef3f4b6f2e7925a4c619fb918e5fdf266ecd77f5"
+                            hex"ad2c941f828c6977b6acb9587b1e0e8581e5685cd255918732ca2b2977ddd849"
                         )
                     )
                 )

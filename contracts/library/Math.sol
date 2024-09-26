@@ -4,13 +4,17 @@ pragma solidity ^0.8.24;
 /**
  * @title Math
  * @dev a library for performing various math operations
- * @author Carl
+ * @author Carl Fu
  */
 library Math {
     function min(uint x, uint y) internal pure returns (uint z) {
         z = x < y ? x : y;
     }
 
+    /**
+     * z = √y
+     * @param y y
+     */
     function sqrt(uint y) internal pure returns (uint z) {
         if (y > 3) {
             z = y;

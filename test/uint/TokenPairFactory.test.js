@@ -46,7 +46,7 @@ describe("TokenPairFactory", async function () {
             assert.equal(pairLength, 1);
 
             const pair = await factoryContract.allPairs(0);
-            assert.equal(pair, "0x558fA799EdC36109bd3f09f6c1549A4C8B493d0E");
+            assert.equal(pair, "0xad5AAeA22D55FaE8F93Cc496C7211f2AEAC5Cc26");
 
             const pair1 = await factoryContract.getPair(WETH, tokenA);
             const pair2 = await factoryContract.getPair(tokenA, WETH);
@@ -59,7 +59,7 @@ describe("TokenPairFactory", async function () {
                 .withArgs(
                     WETH,
                     tokenA,
-                    "0x558fA799EdC36109bd3f09f6c1549A4C8B493d0E",
+                    "0xad5AAeA22D55FaE8F93Cc496C7211f2AEAC5Cc26",
                     1,
                 );
         });
